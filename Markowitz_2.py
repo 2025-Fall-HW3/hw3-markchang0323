@@ -51,7 +51,7 @@ class MyPortfolio:
     NOTE: You can modify the initialization function
     """
 
-    def __init__(self, price, exclude, lookback=50, gamma=0):
+    def __init__(self, price, exclude, lookback=120, gamma=0):
         self.price = price
         self.returns = price.pct_change().fillna(0)
         self.exclude = exclude
@@ -70,7 +70,37 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        
+
+        # Extreme momentum strategy: Hold only the best asset with occasional diversification
+        for i in range(self.lookback + 1, len(self.price)):
+            # Get historical returns for the lookback period
+            R_n = self.returns.copy()[assets].iloc[i - self.lookback : i]
+            
+            # Calculate annualized mean returns and volatility
+            mu = R_n.mean().values * 252  # Annualized return
+            sigma = R_n.std().values * np.sqrt(252)  # Annualized volatility
+            n = len(mu)
+            
+            # Calculate individual Sharpe ratios
+            individual_sharpes = mu / (sigma + 1e-8)
+            
+            # Get the best asset
+            best_idx = np.argmax(individual_sharpes)
+            best_sharpe = individual_sharpes[best_idx]
+            
+            # Get second best
+            sorted_indices = np.argsort(individual_sharpes)
+            second_best_idx = sorted_indices[-2] if len(sorted_indices) > 1 else best_idx
+            second_sharpe = individual_sharpes[second_best_idx]
+            
+            full_weights = np.zeros(n)
+            
+            # Ultra-aggressive: 90% in best, 10% in second best
+            # This maximizes return while maintaining minimal diversification
+            full_weights[best_idx] = 0.90
+            full_weights[second_best_idx] = 0.10
+            
+            self.portfolio_weights.loc[self.price.index[i], assets] = full_weights
         
         """
         TODO: Complete Task 4 Above
